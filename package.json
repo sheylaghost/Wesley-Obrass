@@ -1,0 +1,16 @@
+{
+  "name": "obras-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": { "dev": "vite --host", "build": "vite build", "preview": "vite preview --host" },
+  "dependencies": {
+    "@fontsource/barlow": "^5.0.0",
+    "@fontsource/barlow-condensed": "^5.0.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "idb-keyval": "^6.2.1",
+    "jspdf": "^2.5.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": { "vite": "^5.4.0", "vite-plugin-pwa": "^0.20.0" }
+}
