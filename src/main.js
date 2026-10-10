@@ -91,7 +91,7 @@ function diario(o){return `<div class="form noprint"><input id="dd" type="date" 
  <input class="full" id="de" placeholder="Quem trabalhou hoje? (nomes ou quantidade)"><textarea class="full" id="ds" placeholder="O que foi feito hoje"></textarea>
  <textarea class="full" id="do" placeholder="Ocorrências (problema, falta de material, atraso). Opcional" style="min-height:60px"></textarea>
  <label class="cam full" style="justify-content:flex-start;height:46px" id="dfl">📷 Anexar fotos do dia<input id="df" type="file" accept="image/*" multiple></label>
- <button class="fill full" data-a="adddia">Salvar registro</button></div>
+ <button class="fill full" data-a="adddia">Salvar registro</button></div><div class="row noprint" style="margin:12px 0"><button class="sm ghost" data-a="pdfdiario">Baixar PDF do diario</button></div>
  <h2>Registros</h2><input data-f="dq" placeholder="Buscar nos registros" value="${esc(F.dq||'')}" style="margin-bottom:8px"><div id="dlista">${dlista(o)}</div>`}
 
 function home(){
@@ -113,12 +113,12 @@ function obra(){
  if(tab==='gastos')b=`<div class="form noprint"><input class="full" id="gd" placeholder="O que foi pago?"><input id="gv" type="number" inputmode="decimal" placeholder="Valor em R$"><select id="gc">${CATS.map(c=>`<option>${c}</option>`).join('')}</select>
  <input id="gq" list="forn" placeholder="Pago a quem? (fornecedor)"><datalist id="forn">${[...new Set(S.obras.flatMap(x=>x.gastos.map(g=>g.quem)).filter(Boolean))].map(f=>`<option value="${esc(f)}">`).join('')}</datalist>
  <label class="mut">Vence em (deixe vazio se já pagou)<input id="gvc" type="date"></label>
- <label class="cam full" style="justify-content:flex-start;height:46px" id="gfl">📷 Anexar foto da nota<input id="gf" type="file" accept="image/*" capture="environment"></label>
+ <label class="cam full" style="justify-content:flex-start;height:46px" id="gfl">📷 Anexar foto da nota<input id="gf" type="file" accept="image/*"></label>
  <button class="fill full" data-a="addgasto">Lançar gasto</button></div>
  <h2>Lançamentos</h2><div class="form filters noprint"><input data-f="q" placeholder="Buscar" value="${esc(F.q)}"><select data-f="c"><option value="">Categoria</option>${CATS.map(c=>`<option ${F.c===c?'selected':''}>${c}</option>`).join('')}</select><select data-f="m"><option value="">Mês</option>${ms.map(m=>`<option value="${m}" ${F.m===m?'selected':''}>${m.slice(5)}/${m.slice(2,4)}</option>`).join('')}</select></div><div id="lista">${lista(o)}</div>`;
  if(tab==='check')b=`<div class="row noprint" style="margin-top:12px"><input id="ci" placeholder="Novo item" style="flex:1"><button class="fill" data-a="addcheck">Adicionar</button></div>
  <div class="row noprint" style="margin:10px 0"><button class="sm ghost" data-a="usamodelo">Aplicar modelo</button><button class="sm ghost" data-a="salvamodelo">Salvar como modelo</button></div>
- ${o.checklist.map((c,i)=>`<div class="item ${c.done?'done':''}"><button class="chk" aria-pressed="${c.done}" data-a="toggle" data-i="${i}">${c.done?'✓':''}</button><span class="t">${esc(c.t)}</span><button class="sm ghost noprint" data-a="editc" data-i="${i}">Editar</button><label class="cam" aria-label="Tirar foto">📷<input type="file" accept="image/*" capture="environment" data-i="${i}"></label><button class="sm ghost noprint" data-a="delc" data-i="${i}" aria-label="Apagar">×</button></div>
+ ${o.checklist.map((c,i)=>`<div class="item ${c.done?'done':''}"><button class="chk" aria-pressed="${c.done}" data-a="toggle" data-i="${i}">${c.done?'✓':''}</button><span class="t">${esc(c.t)}</span><button class="sm ghost noprint" data-a="editc" data-i="${i}">Editar</button><label class="cam" aria-label="Anexar foto">📷<input type="file" accept="image/*" data-i="${i}"></label><button class="sm ghost noprint" data-a="delc" data-i="${i}" aria-label="Apagar">×</button></div>
  ${c.fotos.length?`<div class="thumbs">${c.fotos.map((f,j)=>`<figure data-a="nota" data-i="${i}" data-j="${j}"><img src="${f.src}" alt="Foto"><figcaption>${f.nota?esc(f.nota):'Toque para comentar'}</figcaption></figure>`).join('')}</div>`:''}`).join('')||'<p class="mut">Checklist vazio. Adicione um item ou aplique o modelo.</p>'}`;
  if(tab==='diario')b=diario(o);
  if(tab==='graf')b=`<h2>Por mês</h2>${monthChart(o)}<h2>Por categoria</h2>${bars(o,'cat')}<h2>Por fornecedor</h2>${bars(o,'quem')}`;
@@ -141,6 +141,16 @@ y+=4;L('Checklist',14,true);o.checklist.forEach(c=>L((c.done?'[x] ':'[ ] ')+c.t+
 y+=4;L('Diário de obra',14,true);
 D(o).slice().sort((a,b)=>b.date.localeCompare(a.date)).forEach(r=>{L(`${fd(r.date)}  ${r.clima||''}${r.equipe?'  ·  Equipe: '+r.equipe:''}`,10,true);if(r.servicos)L(r.servicos,10);if(r.ocorr)L('Ocorrência: '+r.ocorr,10);if(r.fotos.length)L(`(${r.fotos.length} foto(s))`,9);y+=2});
 d.save(o.nome+'.pdf')}
+function pdfDiario(o){
+ const registros=D(o).slice().sort((a,b)=>b.date.localeCompare(a.date));
+ if(!registros.length){alert('Nao ha registros no diario para gerar o PDF.');return}
+ const d=new jsPDF();let y=20;
+ const L=(t,s=11,b=false)=>{d.setFontSize(s);d.setFont('helvetica',b?'bold':'normal');d.splitTextToSize(String(t).replace(/\u00a0/g,' '),182).forEach(ln=>{if(y>282){d.addPage();y=20}d.text(ln,14,y);y+=s*.5+2})};
+ const foto=(src)=>{try{const p=d.getImageProperties(src),h=Math.min(100,p.height/p.width*182);if(y+h>282){d.addPage();y=20}d.addImage(src,'JPEG',14,y,182,h);y+=h+4}catch(e){L('Foto nao incluida no PDF.',9)}};
+ L('Diario de obra',20,true);L(o.nome,14,true);L('Emitido em '+fd(hoje()));y+=4;
+ registros.forEach(r=>{L(fd(r.date)+'  '+(r.clima||'')+(r.equipe?'  -  Equipe: '+r.equipe:''),12,true);if(r.servicos)L(r.servicos,10);if(r.ocorr)L('Ocorrencias: '+r.ocorr,10);r.fotos.forEach(f=>foto(f.src));y+=3});
+ d.save('diario-'+o.nome+'.pdf')
+}
 document.addEventListener('click',e=>{
  const b=e.target.closest('[data-a]');if(!b)return;
  const a=b.dataset.a,i=+b.dataset.i,o=S.obras.find(x=>x.id===cur);
@@ -161,6 +171,7 @@ document.addEventListener('click',e=>{
  else if(a==='tab')tab=b.dataset.k;
  else if(a==='theme'){const r=document.documentElement;r.dataset.theme=getComputedStyle(r).getPropertyValue('--bg').trim()==='#000'?'light':'dark';return}
  else if(a==='pdf'){pdf(o);return}
+ else if(a==='pdfdiario'){pdfDiario(o);return}
  else if(a==='csv'){const w=XLSX.utils.book_new();XLSX.utils.book_append_sheet(w,XLSX.utils.json_to_sheet(o.gastos.map(g=>({Data:g.date,'Descrição':g.desc,Categoria:g.cat,Fornecedor:g.quem||'',Valor:g.v,'Situação':g.pago?'Pago':'A pagar',Vencimento:g.venc||''}))),'Gastos');XLSX.writeFile(w,o.nome+'.xlsx');return}
  else if(a==='backup'){const u=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));const l=document.createElement('a');l.href=u;l.download='backup-obras-'+hoje()+'.json';l.click();return}
  else if(a==='adddia'){const s=document.getElementById('ds').value.trim(),x=document.getElementById('do').value.trim();
